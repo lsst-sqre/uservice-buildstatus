@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: u-bldstatus
+  labels:
+    name: u-bldstatus
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    port: 5001
+    targetPort: 5000
+    protocol: TCP
+  selector:
+    name: u-bldstatus

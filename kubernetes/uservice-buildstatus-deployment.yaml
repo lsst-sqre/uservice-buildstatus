@@ -1,0 +1,21 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: u-bldstatus
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: u-bldstatus
+    spec:
+      containers:
+
+        - name: u-bldstatus
+          imagePullPolicy: "Always"
+          image: "lsstsqre/uservice-buildstatus"
+          ports:
+            -
+              containerPort: 5000
+              name: u-bldstatus
+              
