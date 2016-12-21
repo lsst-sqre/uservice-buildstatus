@@ -54,6 +54,11 @@ def server(run_standalone=False):
                                status_code=resp.status_code,
                                content=resp.text)
 
+    @app.route("/")
+    def root_route():
+        """Needed for Ingress health check."""
+        return "OK"
+
     @app.errorhandler(BackendError)
     # pylint: disable=unused-variable
     def handle_invalid_usage(error):
