@@ -2,7 +2,6 @@ FROM       centos:7
 MAINTAINER sqre-admin
 
 LABEL      description="LSST DM/SQuaRE buildstatus microservice" \
-
            name="lsstsqre/uservice-buildstatus"
 
 USER       root
