@@ -1,19 +1,27 @@
 FROM       centos:7
 MAINTAINER sqre-admin
-LABEL      version="0.0.2" description="LSST DM/SQuaRE status microservice" \
+
+LABEL      description="LSST DM/SQuaRE buildstatus microservice" \
            name="lsstsqre/uservice-buildstatus"
 
 USER       root
-RUN        yum update -y && \
-           yum install -y epel-release && \
-           yum repolist && \
-           yum install -y git python-pip python-devel && \
-	   pip install --upgrade pip && \
-           pip install requests sqre-uservice-buildstatus && \
-           useradd -d /home/flasker -m flasker
+RUN        yum update -y
+RUN        yum install -y epel-release
+RUN        yum repolist
+RUN        yum install -y git python-pip python-devel
+RUN        yum install -y gcc openssl-devel
+RUN        pip install --upgrade pip
+RUN        useradd -d /home/uwsgi -m uwsgi
+RUN        mkdir /dist
 
-USER flasker
-WORKDIR /home/flasker
+ARG        VERSION="0.0.2"
+LABEL      version="$VERSION"
+COPY       dist/sqre-uservice-buildstatus-$VERSION.tar.gz /dist
+RUN        pip install /dist/sqre-uservice-buildstatus-$VERSION.tar.gz
+
+USER uwsgi
+WORKDIR /home/uwsgi
+COPY uwsgi.ini .
 EXPOSE 5000
-CMD sqre-uservice-buildstatus
-	   
+CMD [ "uwsgi", "-T", "uwsgi.ini" ]
+

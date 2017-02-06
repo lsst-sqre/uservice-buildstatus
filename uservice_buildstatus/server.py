@@ -10,7 +10,7 @@ def server(run_standalone=False):
     """Create the app and then run it."""
     # Add "/buildstatus" for mapping behind api.lsst.codes
     app = apf(name="uservice-buildstatus",
-              version="0.0.1",
+              version="0.0.2",
               repository="https://github.com/sqre-lsst/" +
               "sqre-uservice-buildstatus",
               description="API wrapper for build status",
@@ -19,6 +19,11 @@ def server(run_standalone=False):
                     "data": {"username": "",
                              "password": ""}})
     app.config["SESSION"] = None
+
+    @app.route("/")
+    def return_root():
+        '''For GKE Ingress healthcheck'''
+        return "OK"
 
     @app.route("/<buildname>")
     @app.route("/buildstatus/<buildname>")
@@ -68,6 +73,8 @@ def server(run_standalone=False):
         return response
     if run_standalone:
         app.run(host='0.0.0.0', threaded=True)
+    # Cough up app for uwsgi
+    return app
 
 
 def _reauth(app, username, password):
@@ -80,6 +87,7 @@ def _reauth(app, username, password):
 def standalone():
     """Entry point for running as its own executable."""
     server(run_standalone=True)
+
 
 if __name__ == "__main__":
     standalone()
