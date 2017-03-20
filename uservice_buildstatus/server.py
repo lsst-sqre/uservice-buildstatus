@@ -1,32 +1,41 @@
 #!/usr/bin/env python
 """Retrieve build data from ci.lsst.codes"""
 import requests
-from apikit import APIFlask as apf
+from apikit import APIFlask as APF
 from apikit import BackendError
 from flask import jsonify, request
+
+# pylint: disable=invalid-name
+log = None
 
 
 def server(run_standalone=False):
     """Create the app and then run it."""
     # Add "/buildstatus" for mapping behind api.lsst.codes
-    app = apf(name="uservice-buildstatus",
-              version="0.0.2",
+    # Also "/bldstatus"
+    app = APF(name="uservice-buildstatus",
+              version="0.0.3",
               repository="https://github.com/sqre-lsst/" +
               "sqre-uservice-buildstatus",
               description="API wrapper for build status",
-              route=["/", "/buildstatus"],
+              route=["/", "/buildstatus", "/bldstatus"],
               auth={"type": "basic",
                     "data": {"username": "",
                              "password": ""}})
     app.config["SESSION"] = None
+    # pylint: disable=global-statement
+    global log
+    log = app.config["LOGGER"]
 
     @app.route("/")
+    # pylint: disable=unused-variable
     def return_root():
         '''For GKE Ingress healthcheck'''
         return "OK"
 
     @app.route("/<buildname>")
     @app.route("/buildstatus/<buildname>")
+    @app.route("/bldstatus/<buildname>")
     # pylint: disable=unused-variable
     def get_buildstatus(buildname):
         """
@@ -46,11 +55,14 @@ def server(run_standalone=False):
                                content="No authorization provided.")
         session = app.config["SESSION"]
         url = "https://ci.lsst.codes/job/" + buildname + "/api/json"
+        log.info("Requesting URL %s" % url)
         resp = session.get(url)
         if resp.status_code == 403:
             # Try to reauth
+            log.warning("Authorization failed; attempting reauth.")
             _reauth(app, inboundauth.username, inboundauth.password)
             session = app.config["SESSION"]
+            log.info("Requesting URL %s" % url)
             resp = session.get(url)
         if resp.status_code == 200:
             return resp.text
@@ -60,6 +72,7 @@ def server(run_standalone=False):
                                content=resp.text)
 
     @app.route("/")
+    # pylint: disable=unused-variable
     def root_route():
         """Needed for Ingress health check."""
         return "OK"
@@ -68,7 +81,9 @@ def server(run_standalone=False):
     # pylint: disable=unused-variable
     def handle_invalid_usage(error):
         """Custom error handler."""
-        response = jsonify(error.to_dict())
+        errdict = error.to_dict()
+        response = jsonify(errdict)
+        log.error(errdict)
         response.status_code = error.status_code
         return response
     if run_standalone:
@@ -81,6 +96,10 @@ def _reauth(app, username, password):
     """Get a session with authentication data"""
     session = requests.Session()
     session.auth = (username, password)
+    # pylint: disable=global-statement
+    global log
+    log = log.bind(username=username)
+    log.info("Established session with username %s" % username)
     app.config["SESSION"] = session
 
 
